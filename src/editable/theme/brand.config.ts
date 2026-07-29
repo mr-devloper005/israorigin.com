@@ -13,7 +13,10 @@ export const slot4BrandConfig = {
   productKind,
   ogImage: siteIdentity.ogImage,
   accents: {
-    primary: '#d32323',
-    surface: '#ffffff',
+    primary: '#5CBF4E',
+    surface: '#FFFFFF',
+    canvas: '#F3EFE5',
+    ink: '#17170F',
+    play: ['#5CBF4E', '#F2DC3C', '#F4634E', '#2E7FF5', '#DDB8F7'],
   },
 } as const
