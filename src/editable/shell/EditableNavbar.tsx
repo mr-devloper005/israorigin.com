@@ -1,139 +1,246 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, UserPlus, LogIn, X, PlusCircle } from 'lucide-react'
+import { ArrowUpRight, ChevronDown, LogIn, Menu, PlusCircle, Search, UserPlus, X } from 'lucide-react'
 import { SITE_CONFIG } from '@/lib/site-config'
 import { globalContent } from '@/editable/content/global.content'
+import { getBrowsableTasks } from '@/editable/content/sections'
 import { useEditableLocalAuthSession } from '@/editable/components/EditableLocalAuthForms'
 
+/*
+  Floating pill navigation.
+
+  A rounded white bar rides above the cream canvas with the wordmark on the
+  left, a compact link set in the middle, and a separate action pill on the
+  right. It tightens and deepens its shadow once the page scrolls.
+*/
 export function EditableNavbar() {
   const [open, setOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
   const { session, logout } = useEditableLocalAuthSession()
-  const navItems = useMemo(
-    () => SITE_CONFIG.tasks.filter((task) => task.enabled).map((task) => ({ label: task.label, href: task.route })),
-    []
+
+  const taskLinks = useMemo(
+    () => getBrowsableTasks().map((task) => ({ label: task.label, href: task.route, description: task.description })),
+    [],
   )
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Close every panel whenever the route changes.
+  useEffect(() => {
+    setOpen(false)
+    setSearchOpen(false)
+  }, [pathname])
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
+
+  const flatLinks = [
+    { label: 'Home', href: '/' },
+    ...taskLinks.map(({ label, href }) => ({ label, href })),
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
+  ]
+
   return (
-    <header className="sticky top-0 z-50 bg-[var(--editable-nav-bg)]/96 text-[var(--editable-nav-text)] backdrop-blur-md">
-      <div className="h-[3px] bg-[linear-gradient(90deg,transparent_0%,var(--slot4-accent)_20%,var(--slot4-accent)_80%,transparent_100%)]" />
-
-      <nav className="mx-auto flex min-h-[76px] w-full max-w-[var(--editable-container)] items-center gap-5 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="group flex shrink-0 items-center gap-3 border-r border-[var(--editable-border)] pr-5">
-          <span className="flex h-11 w-11 items-center justify-center border border-[var(--slot4-accent)]/45 bg-[var(--slot4-surface-bg)] transition group-hover:border-[var(--slot4-accent)]">
-            <img src="/favicon.png?v=20260413" alt={SITE_CONFIG.name} className="h-8 w-8 object-contain" />
-          </span>
-          <span className="hidden min-w-0 md:block">
-            <span className="editable-display block max-w-[200px] truncate text-xl font-semibold leading-none tracking-[0.01em]">{SITE_CONFIG.name}</span>
-            <span className="mt-1 block max-w-[200px] truncate text-[10px] font-medium uppercase tracking-[0.26em] text-[var(--slot4-muted-text)]">
-              {globalContent.nav?.tagline || SITE_CONFIG.tagline}
+    <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'pt-2 sm:pt-3' : 'pt-3 sm:pt-6'}`}>
+      <div className="mx-auto flex w-full max-w-[var(--editable-container)] items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8">
+        <nav
+          className={`flex min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--editable-border)] bg-white/95 px-2 py-2 backdrop-blur-xl transition-all duration-500 sm:gap-3 sm:px-3 ${
+            scrolled ? 'shadow-[0_12px_34px_rgba(23,23,15,0.14)]' : 'shadow-[0_6px_20px_rgba(23,23,15,0.07)]'
+          }`}
+        >
+          <Link href="/" className="group flex min-w-0 shrink-0 items-center gap-2.5 pl-2 pr-2 sm:gap-3">
+            <img
+              src="/favicon.png?v=20260413"
+              alt={SITE_CONFIG.name}
+              className="h-10 w-auto max-w-[132px] shrink-0 object-contain transition duration-500 group-hover:scale-105"
+            />
+            <span className="editable-display hidden max-w-[180px] truncate text-[1.35rem] font-semibold leading-none tracking-[-0.04em] sm:block">
+              {SITE_CONFIG.name}
             </span>
-          </span>
-        </Link>
+          </Link>
 
-        <div className="hidden items-stretch gap-0 lg:flex">
-          {navItems.slice(0, 5).map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
-            return (
+          <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex">
+            {taskLinks.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center px-4 text-[11px] font-semibold uppercase tracking-[0.22em] transition ${
-                  active ? 'text-[var(--slot4-accent)]' : 'text-[var(--slot4-muted-text)] hover:text-[var(--slot4-page-text)]'
+                className={`rounded-full px-4 py-2 text-[0.9rem] font-medium transition duration-300 ${
+                  isActive(item.href)
+                    ? 'bg-[var(--iso-green-soft)] text-[var(--slot4-accent)]'
+                    : 'text-[var(--slot4-page-text)] hover:bg-[var(--slot4-warm)]'
                 }`}
               >
                 {item.label}
-                {active ? <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--slot4-accent)]" /> : null}
               </Link>
-            )
-          })}
-        </div>
+            ))}
 
-        <form action="/search" className="mx-auto hidden min-w-0 flex-1 justify-center md:flex">
-          <label className="flex w-full max-w-md items-center gap-2 border-b border-[var(--slot4-accent)]/30 pb-2 transition focus-within:border-[var(--slot4-accent)]">
-            <Search className="h-4 w-4 shrink-0 text-[var(--slot4-accent)]" />
-            <input
-              name="q"
-              type="search"
-              placeholder="Search posts"
-              className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-[var(--slot4-muted-text)]"
-            />
-          </label>
-        </form>
+            <div className="group relative">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-full px-4 py-2 text-[0.9rem] font-medium text-[var(--slot4-page-text)] transition hover:bg-[var(--slot4-warm)]"
+              >
+                More <ChevronDown className="h-4 w-4 transition duration-300 group-hover:rotate-180" />
+              </button>
+              <div className="invisible absolute left-1/2 top-full z-50 w-64 -translate-x-1/2 translate-y-1 pt-3 opacity-0 transition duration-300 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                <div className="overflow-hidden rounded-[1.5rem] border border-[var(--editable-border)] bg-white p-2 shadow-[0_22px_50px_rgba(23,23,15,0.16)]">
+                  {[
+                    { label: 'About us', href: '/about', hint: 'What we do and why' },
+                    { label: 'Contact', href: '/contact', hint: 'Start a conversation' },
+                    { label: 'Search', href: '/search', hint: 'Find anything, fast' },
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="block rounded-[1.1rem] px-3.5 py-2.5 transition hover:bg-[var(--slot4-warm)]"
+                    >
+                      <span className="block text-sm font-semibold">{item.label}</span>
+                      <span className="mt-0.5 block text-xs text-[var(--slot4-muted-text)]">{item.hint}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen((value) => !value)
+                setOpen(false)
+              }}
+              aria-label="Toggle search"
+              aria-expanded={searchOpen}
+              className={`flex h-10 w-10 items-center justify-center rounded-full transition duration-300 ${
+                searchOpen ? 'bg-[var(--iso-ink)] text-[var(--iso-cream)]' : 'bg-[var(--slot4-warm)] text-[var(--slot4-page-text)] hover:bg-[var(--iso-green-soft)]'
+              }`}
+            >
+              {searchOpen ? <X className="h-[18px] w-[18px]" /> : <Search className="h-[18px] w-[18px]" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen((value) => !value)
+                setSearchOpen(false)
+              }}
+              aria-label="Toggle menu"
+              aria-expanded={open}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--iso-green)] text-[#12210E] transition duration-300 hover:brightness-105 lg:hidden"
+            >
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </nav>
+
+        {/* Action pill, separated from the nav bar like a stamp. */}
+        <div className="hidden shrink-0 items-center sm:flex">
           {session ? (
-            <>
+            <div className="flex items-center gap-2">
               <Link
                 href="/create"
-                className="hidden items-center gap-2 border border-[var(--slot4-accent)] bg-[var(--editable-cta-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--editable-cta-text)] transition hover:opacity-90 sm:inline-flex"
+                className="group flex items-center gap-2 rounded-full border border-[var(--editable-border)] bg-white py-2 pl-5 pr-2 text-sm font-semibold shadow-[0_6px_20px_rgba(23,23,15,0.07)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(23,23,15,0.14)]"
               >
-                <PlusCircle className="h-3.5 w-3.5" /> Create
+                Create
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--iso-green)] text-[#12210E]">
+                  <PlusCircle className="h-4 w-4" />
+                </span>
               </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="hidden items-center gap-2 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--slot4-muted-text)] transition hover:text-[var(--slot4-page-text)] sm:inline-flex"
+                className="hidden rounded-full px-3 py-2 text-sm font-medium text-[var(--slot4-muted-text)] transition hover:text-[var(--slot4-page-text)] lg:block"
               >
-                Logout
+                Log out
               </button>
-            </>
+            </div>
           ) : (
-            <>
-              <Link
-                href="/login"
-                className="hidden items-center gap-2 border border-[var(--editable-border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--slot4-muted-text)] transition hover:border-[var(--slot4-accent)]/40 hover:text-[var(--slot4-page-text)] sm:inline-flex"
-              >
-                <LogIn className="h-3.5 w-3.5" /> Login
-              </Link>
-              <Link
-                href="/signup"
-                className="hidden items-center gap-2 border border-[var(--slot4-accent)] bg-[var(--editable-cta-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--editable-cta-text)] transition hover:opacity-90 sm:inline-flex"
-              >
-                <UserPlus className="h-3.5 w-3.5" /> Sign up
-              </Link>
-            </>
+            <Link
+              href="/contact"
+              className="group flex items-center gap-2 rounded-full border border-[var(--editable-border)] bg-white py-2 pl-5 pr-2 text-sm font-semibold shadow-[0_6px_20px_rgba(23,23,15,0.07)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(23,23,15,0.14)]"
+            >
+              {globalContent.nav?.actions?.primary?.label || 'Get in touch'}
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--iso-ink)] text-[var(--iso-cream)] transition duration-500 group-hover:bg-[var(--iso-green)] group-hover:text-[#12210E]">
+                <ArrowUpRight className="h-4 w-4" />
+              </span>
+            </Link>
           )}
-          <button
-            type="button"
-            onClick={() => setOpen((value) => !value)}
-            className="border border-[var(--editable-border)] bg-[var(--slot4-surface-bg)] p-2 lg:hidden"
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
-      </nav>
+      </div>
 
-      <div className="h-px bg-[var(--editable-border)]" />
-
-      {open ? (
-        <div className="border-t border-[var(--editable-border)] bg-[var(--editable-nav-bg)] px-4 py-5 lg:hidden">
-          <form action="/search" className="mb-5 flex items-center gap-2 border-b border-[var(--slot4-accent)]/30 pb-2">
-            <Search className="h-4 w-4 text-[var(--slot4-accent)]" />
-            <input name="q" type="search" placeholder="Search posts" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--slot4-muted-text)]" />
+      {/* Search drawer */}
+      {searchOpen ? (
+        <div className="mx-auto w-full max-w-[var(--editable-container)] px-3 sm:px-6 lg:px-8">
+          <form
+            action="/search"
+            className="mt-2 flex items-center gap-2 rounded-full border border-[var(--editable-border)] bg-white p-2 shadow-[0_18px_44px_rgba(23,23,15,0.16)]"
+          >
+            <Search className="ml-3 h-5 w-5 shrink-0 text-[var(--slot4-muted-text)]" />
+            <input
+              name="q"
+              autoFocus
+              type="search"
+              placeholder="Search profiles, galleries, topics…"
+              className="min-w-0 flex-1 bg-transparent py-2 text-[0.95rem] outline-none placeholder:text-[var(--slot4-soft-muted-text)]"
+            />
+            <button className="shrink-0 rounded-full bg-[var(--iso-ink)] px-5 py-2.5 text-sm font-semibold text-[var(--iso-cream)] transition hover:bg-[var(--iso-green)] hover:text-[#12210E]">
+              Search
+            </button>
           </form>
-          <div className="grid gap-1">
-            {[{ label: 'Home', href: '/' }, ...navItems, { label: 'Contact', href: '/contact' }, ...(session ? [{ label: 'Create', href: '/create' }] : [{ label: 'Login', href: '/login' }, { label: 'Sign up', href: '/signup' }])].map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
-              return (
+        </div>
+      ) : null}
+
+      {/* Mobile menu */}
+      {open ? (
+        <div className="mx-auto w-full max-w-[var(--editable-container)] px-3 sm:px-6 lg:hidden lg:px-8">
+          <div className="mt-2 rounded-[1.75rem] border border-[var(--editable-border)] bg-white p-3 shadow-[0_18px_44px_rgba(23,23,15,0.16)]">
+            <div className="grid gap-1">
+              {flatLinks.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className={`border-l-2 px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] ${
-                    active
-                      ? 'border-[var(--slot4-accent)] bg-[var(--slot4-surface-bg)] text-[var(--slot4-accent)]'
-                      : 'border-transparent text-[var(--slot4-muted-text)] hover:border-[var(--slot4-accent)]/40 hover:bg-[var(--slot4-surface-bg)]'
+                  className={`flex items-center justify-between rounded-[1.15rem] px-4 py-3 text-[0.95rem] font-semibold transition ${
+                    isActive(item.href) && item.href !== '/'
+                      ? 'bg-[var(--iso-green-soft)] text-[var(--slot4-accent)]'
+                      : 'hover:bg-[var(--slot4-warm)]'
                   }`}
                 >
                   {item.label}
+                  <ArrowUpRight className="h-4 w-4 opacity-40" />
                 </Link>
-              )
-            })}
+              ))}
+            </div>
+            <div className="mt-2 grid gap-2 border-t border-[var(--editable-border)] pt-3 sm:grid-cols-2">
+              {session ? (
+                <>
+                  <Link href="/create" onClick={() => setOpen(false)} className="rounded-full bg-[var(--iso-green)] px-5 py-3 text-center text-sm font-semibold text-[#12210E]">
+                    Create a post
+                  </Link>
+                  <button type="button" onClick={logout} className="rounded-full border border-[var(--editable-border)] px-5 py-3 text-sm font-semibold">
+                    Log out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)} className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--editable-border)] px-5 py-3 text-sm font-semibold">
+                    <LogIn className="h-4 w-4" /> Log in
+                  </Link>
+                  <Link href="/signup" onClick={() => setOpen(false)} className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--iso-ink)] px-5 py-3 text-sm font-semibold text-[var(--iso-cream)]">
+                    <UserPlus className="h-4 w-4" /> Sign up
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       ) : null}
