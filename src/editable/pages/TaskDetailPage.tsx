@@ -357,7 +357,7 @@ function ProfileDetail({ post, related }: { post: SitePost; related: SitePost[] 
                 <MetaRow items={[location, categoryOf(post, ''), website ? 'Online' : ''].filter(Boolean)} />
               </div>
               <div className="shrink-0 pb-1">
-                <ContactAction website={website} phone={phone} email={email} bare />
+                <ContactAction website={website} bare />
               </div>
             </div>
           </div>
@@ -380,7 +380,6 @@ function ProfileDetail({ post, related }: { post: SitePost; related: SitePost[] 
                 {categoryOf(post, '') ? <BadgeLine label="Category" value={categoryOf(post, '')} /> : null}
               </div>
             </div>
-            <ContactAction website={website} phone={phone} email={email} />
             <RelatedPanel task="profile" related={related} />
           </aside>
         </div>
